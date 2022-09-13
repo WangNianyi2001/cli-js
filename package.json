@@ -1,0 +1,12 @@
+{
+	"name": "cli-ts",
+	"author": "Nianyi Wang<wangnianyi2001@outlook.com>",
+	"type": "module",
+	"main": "build/index.js",
+	"scripts": {
+		"build": "npx tsc"
+	},
+	"devDependencies": {
+		"typescript": "^4.8.3"
+	}
+}
