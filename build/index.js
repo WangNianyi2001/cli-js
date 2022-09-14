@@ -52,36 +52,74 @@ export class Flag extends Option {
 ;
 export class Command extends Parsable {
     options = new Set();
-    subcommands = new Set();
+    commands = new Set();
     handler = null;
     parsedSub = null;
+    arguments = [];
     constructor(init) {
         super(init);
         if (init.handler)
             this.handler = init.handler;
         if (init.options)
-            Array.from(init.options).forEach(option => this.options.add(new Option(option)));
+            this.AddOptions(init.options);
         if (init.flags)
-            Array.from(init.flags).forEach(flag => this.options.add(new Flag(flag)));
-        if (init.subcommands)
-            Array.from(init.subcommands).forEach(command => this.subcommands.add(new Command(command)));
+            this.AddFlags(init.flags);
+        if (init.commands)
+            this.AddCommands(init.commands);
+    }
+    #Add(cons, set, sources) {
+        for (const source of sources) {
+            if (source instanceof cons)
+                set.add(source);
+            else
+                set.add(new cons(source));
+        }
+    }
+    AddOptions(options) {
+        this.#Add(Option, this.options, options);
+    }
+    AddFlags(flags) {
+        this.#Add(Flag, this.options, flags);
+    }
+    AddCommands(commands) {
+        this.#Add(Command, this.commands, commands);
     }
     Validate(header) {
         return this.names.has(header);
     }
     Find(header) {
-        return [this.subcommands, this.options]
+        return [this.commands, this.options]
             .map(set => Array.from(set))
             .flat()
             .find(child => child.Validate(header))
             || null;
     }
+    GetOption(header) {
+        const parsable = this.Find('--' + header);
+        if (parsable instanceof Option)
+            return parsable.arguments.slice();
+        return [];
+    }
+    GetSingle(header) {
+        const single = this.GetOption(header)[0];
+        if (single === undefined)
+            return '';
+        return single + '';
+    }
+    GetFlag(header) {
+        const parsable = this.Find('-' + header);
+        if (parsable instanceof Flag)
+            return parsable.parsed;
+        return false;
+    }
     Parse(args) {
         while (args.length) {
             const header = args.shift();
             let target = this.Find(header);
-            if (!target)
-                throw `Unrecognized token "${header}"`;
+            if (!target) {
+                this.arguments.push(header);
+                continue;
+            }
             target.Parse(args);
             if (target instanceof Command)
                 this.parsedSub = target;
@@ -98,7 +136,7 @@ export class Command extends Parsable {
     }
 }
 ;
-export class CLI extends Command {
+export default class CLI extends Command {
     execContext;
     Execute() {
         this.execContext = {
@@ -116,23 +154,4 @@ export class CLI extends Command {
         }
     }
 }
-const cli = new CLI({
-    name: 'cli',
-    subcommands: [
-        {
-            name: 'hello',
-            flags: [{
-                    name: 'cow',
-                    shortName: 'c'
-                }],
-            handler() {
-                const flag = this.Find('--cow');
-                if (flag.parsed)
-                    console.log('mooooooow');
-                else
-                    console.log('hello, world');
-            }
-        }
-    ]
-});
-cli.Execute();
+export { CLI };
