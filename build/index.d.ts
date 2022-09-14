@@ -20,7 +20,7 @@ export declare class Option extends Parsable {
     Validate(header: string): boolean;
 }
 interface FlagInit extends Init {
-    shortName: string | string[];
+    shortName?: string | string[];
 }
 export declare class Flag extends Option {
     constructor(init: FlagInit);
@@ -46,8 +46,8 @@ export declare class Command extends Parsable {
     Validate(header: string): boolean;
     Find(header: string): Parsable | null;
     GetOption(header: string): string[];
-    GetSingle(header: string): string;
     GetFlag(header: string): boolean;
+    GetSingle(header: string): string;
     Parse(args: string[]): void;
     Execute(): void;
 }

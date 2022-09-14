@@ -16,7 +16,7 @@ class Parsable {
 export class Option extends Parsable {
     shortNames = new Set();
     argumentCount;
-    arguments;
+    arguments = [];
     constructor(init) {
         super(init);
         this.argumentCount = init.argumentCount;
@@ -32,7 +32,7 @@ export class Option extends Parsable {
         if (args.length < this.argumentCount)
             throw 'No enough arguments';
         this.parsed = true;
-        this.arguments = args.splice(0, this.argumentCount);
+        this.arguments.push(...args.splice(0, this.argumentCount));
     }
     Validate(header) {
         if (/^\-\-/.test(header))
@@ -58,14 +58,10 @@ export class Command extends Parsable {
     arguments = [];
     constructor(init) {
         super(init);
-        if (init.handler)
-            this.handler = init.handler;
-        if (init.options)
-            this.AddOptions(init.options);
-        if (init.flags)
-            this.AddFlags(init.flags);
-        if (init.commands)
-            this.AddCommands(init.commands);
+        this.handler = init.handler || null;
+        this.AddOptions(init.options || []);
+        this.AddFlags(init.flags || []);
+        this.AddCommands(init.commands || []);
     }
     #Add(cons, set, sources) {
         for (const source of sources) {
@@ -95,22 +91,22 @@ export class Command extends Parsable {
             || null;
     }
     GetOption(header) {
-        const parsable = this.Find('--' + header);
-        if (parsable instanceof Option)
-            return parsable.arguments.slice();
+        for (const name of ['--' + header, '-' + header]) {
+            const parsable = this.Find(name);
+            if (parsable instanceof Option)
+                return parsable.arguments.slice();
+        }
         return [];
-    }
-    GetSingle(header) {
-        const single = this.GetOption(header)[0];
-        if (single === undefined)
-            return '';
-        return single + '';
     }
     GetFlag(header) {
         const parsable = this.Find('-' + header);
         if (parsable instanceof Flag)
             return parsable.parsed;
         return false;
+    }
+    GetSingle(header) {
+        const option = this.GetOption(header)[0];
+        return option === undefined ? '' : option;
     }
     Parse(args) {
         while (args.length) {
