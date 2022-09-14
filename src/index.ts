@@ -76,16 +76,17 @@ export class Flag extends Option {
 type CommandHandler = (this: Command) => void;
 interface CommandInit extends Init {
 	handler?: CommandHandler;
-	options?: Iterable<OptionInit>;
-	flags?: Iterable<FlagInit>;
-	commands?: Iterable<CommandInit>;
+	options?: Iterable<OptionInit | Option>;
+	flags?: Iterable<FlagInit | Flag>;
+	commands?: Iterable<CommandInit | Command>;
 };
 
 export class Command extends Parsable {
 	options = new Set<Option>();
-	subcommands = new Set<Command>();
+	commands = new Set<Command>();
 	handler: CommandHandler | null = null;
 	parsedSub: Command | null = null;
+	arguments: string[] = [];
 
 	constructor(init: CommandInit) {
 		super(init);
@@ -99,14 +100,24 @@ export class Command extends Parsable {
 			this.AddCommands(init.commands);
 	}
 
-	AddOptions(options: Iterable<OptionInit>) {
-		Array.from(options).forEach(option => this.options.add(new Option(option)));
+	#Add<I extends Init, P extends Parsable>(
+		cons: { new(init: I): P }, set: Set<P>, sources: Iterable<I | P>
+	) {
+		for(const source of sources) {
+			if(source instanceof cons)
+				set.add(source);
+			else
+				set.add(new cons(source as I));
+		}
 	}
-	AddFlags(flags: Iterable<FlagInit>) {
-		Array.from(flags).forEach(flag => this.options.add(new Flag(flag)));
+	AddOptions(options: Iterable<OptionInit | Option>) {
+		this.#Add(Option, this.options, options);
 	}
-	AddCommands(commands: Iterable<CommandInit>) {
-		Array.from(commands).forEach(command => this.subcommands.add(new Command(command)));
+	AddFlags(flags: Iterable<FlagInit | Flag>) {
+		this.#Add(Flag, this.options, flags);
+	}
+	AddCommands(commands: Iterable<CommandInit | Command>) {
+		this.#Add(Command, this.commands, commands);
 	}
 
 	override Validate(header: string): boolean {
@@ -114,7 +125,7 @@ export class Command extends Parsable {
 	}
 
 	Find(header: string): Parsable | null {
-		return [this.subcommands, this.options]
+		return [this.commands, this.options]
 			.map(set => Array.from(set as Set<Parsable>) as Parsable[])
 			.flat()
 			.find(child => child.Validate(header))
@@ -125,8 +136,10 @@ export class Command extends Parsable {
 		while(args.length) {
 			const header = args.shift();
 			let target = this.Find(header);
-			if(!target)
-				throw `Unrecognized token "${header}"`;
+			if(!target) {
+				this.arguments.push(header);
+				continue;
+			}
 			target.Parse(args);
 			if(target instanceof Command)
 				this.parsedSub = target;

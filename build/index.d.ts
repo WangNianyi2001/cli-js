@@ -28,16 +28,21 @@ export declare class Flag extends Option {
 declare type CommandHandler = (this: Command) => void;
 interface CommandInit extends Init {
     handler?: CommandHandler;
-    options?: Iterable<OptionInit>;
-    flags?: Iterable<FlagInit>;
-    subcommands?: Iterable<CommandInit>;
+    options?: Iterable<OptionInit | Option>;
+    flags?: Iterable<FlagInit | Flag>;
+    commands?: Iterable<CommandInit | Command>;
 }
 export declare class Command extends Parsable {
+    #private;
     options: Set<Option>;
-    subcommands: Set<Command>;
+    commands: Set<Command>;
     handler: CommandHandler | null;
     parsedSub: Command | null;
+    arguments: string[];
     constructor(init: CommandInit);
+    AddOptions(options: Iterable<OptionInit | Option>): void;
+    AddFlags(flags: Iterable<FlagInit | Flag>): void;
+    AddCommands(commands: Iterable<CommandInit | Command>): void;
     Validate(header: string): boolean;
     Find(header: string): Parsable | null;
     Parse(args: string[]): void;
@@ -48,8 +53,8 @@ interface ExecContext {
     execDir?: string;
     scriptPath?: string;
 }
-export declare class CLI extends Command {
+export default class CLI extends Command {
     execContext: ExecContext;
     Execute(): void;
 }
-export {};
+export { CLI };
