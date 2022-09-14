@@ -73,7 +73,7 @@ export class Flag extends Option {
 	}
 }
 
-type CommandHandler = (this: Command) => void;
+type CommandHandler = (this: Command) => void | Promise<void>;
 interface CommandInit extends Init {
 	handler?: CommandHandler;
 	options?: Iterable<OptionInit | Option>;
@@ -81,11 +81,17 @@ interface CommandInit extends Init {
 	commands?: Iterable<CommandInit | Command>;
 };
 
+interface ExecContext {
+	cwd?: string;
+	execDir?: string;
+	scriptPath?: string;
+};
+
 export class Command extends Parsable {
 	options = new Set<Option>();
 	commands = new Set<Command>();
 	handler: CommandHandler | null = null;
-	parsedSub: Command | null = null;
+	parsedCommand: Command | null = null;
 	arguments: string[] = [];
 
 	constructor(init: CommandInit) {
@@ -156,40 +162,35 @@ export class Command extends Parsable {
 			}
 			target.Parse(args);
 			if(target instanceof Command)
-				this.parsedSub = target;
+				this.parsedCommand = target;
 		}
 		this.parsed = true;
 	}
 
-	Execute(): void {
+	async Execute(context?: ExecContext) {
 		if(!this.parsed)
 			throw 'Cannot exec an unparsed command';
-		if(this.parsedSub)
-			this.parsedSub.Execute();
+		if(this.parsedCommand)
+			await this.parsedCommand.Execute(context);
 		else if(this.handler)
-			this.handler();
+			await this.handler();
+		else
+			throw 'Invalid arguments'
 	}
 }
-
-interface ExecContext {
-	cwd?: string;
-	execDir?: string;
-	scriptPath?: string;
-};
 
 export default class CLI extends Command {
 	execContext: ExecContext;
 
-	override Execute() {
-		this.execContext = {
-			cwd: process.cwd(),
-			execDir: process.argv[0],
-			scriptPath: path.resolve(process.argv[1], path.basename(new URL(import.meta.url).pathname))
-		};
+	override async Execute(context?: ExecContext) {
 		try {
 			this.Parse(process.argv.slice(2));
 			this.parsed = true;
-			super.Execute();
+			await super.Execute(context || {
+				cwd: process.cwd(),
+				execDir: process.argv[0],
+				scriptPath: path.resolve(process.argv[1], path.basename(new URL(import.meta.url).pathname))
+			});
 		} catch(e: any) {
 			console.error(e + '');
 		}

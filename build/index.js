@@ -50,11 +50,12 @@ export class Flag extends Option {
     }
 }
 ;
+;
 export class Command extends Parsable {
     options = new Set();
     commands = new Set();
     handler = null;
-    parsedSub = null;
+    parsedCommand = null;
     arguments = [];
     constructor(init) {
         super(init);
@@ -118,32 +119,32 @@ export class Command extends Parsable {
             }
             target.Parse(args);
             if (target instanceof Command)
-                this.parsedSub = target;
+                this.parsedCommand = target;
         }
         this.parsed = true;
     }
-    Execute() {
+    async Execute(context) {
         if (!this.parsed)
             throw 'Cannot exec an unparsed command';
-        if (this.parsedSub)
-            this.parsedSub.Execute();
+        if (this.parsedCommand)
+            await this.parsedCommand.Execute(context);
         else if (this.handler)
-            this.handler();
+            await this.handler();
+        else
+            throw 'Invalid arguments';
     }
 }
-;
 export default class CLI extends Command {
     execContext;
-    Execute() {
-        this.execContext = {
-            cwd: process.cwd(),
-            execDir: process.argv[0],
-            scriptPath: path.resolve(process.argv[1], path.basename(new URL(import.meta.url).pathname))
-        };
+    async Execute(context) {
         try {
             this.Parse(process.argv.slice(2));
             this.parsed = true;
-            super.Execute();
+            await super.Execute(context || {
+                cwd: process.cwd(),
+                execDir: process.argv[0],
+                scriptPath: path.resolve(process.argv[1], path.basename(new URL(import.meta.url).pathname))
+            });
         }
         catch (e) {
             console.error(e + '');
