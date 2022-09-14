@@ -134,15 +134,13 @@ export class Command extends Parsable {
 			|| null;
 	}
 	GetOption(header: string): string[] {
-		for(const name of ['--' + header, '-' + header]) {
-			const parsable = this.Find(name);
-			if(parsable instanceof Option)
-				return parsable.arguments.slice();
-		}
+		const parsable = this.Find(header);
+		if(parsable instanceof Option)
+			return parsable.arguments.slice();
 		return [];
 	}
 	GetFlag(header: string): boolean {
-		const parsable = this.Find('-' + header);
+		const parsable = this.Find(header);
 		if(parsable instanceof Flag)
 			return parsable.parsed;
 		return false;
