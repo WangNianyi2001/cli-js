@@ -20,7 +20,7 @@ abstract class Parsable {
 			throw 'A parsable element must have a non-empty name';
 	}
 
-	abstract Validate(header: string): boolean;
+	abstract Validate(index: string): boolean;
 	abstract Parse(args: string[]): void;
 }
 
@@ -52,11 +52,11 @@ export class Option extends Parsable {
 		this.arguments.push(...args.splice(0, this.argumentCount));
 	}
 
-	override Validate(header: string): boolean {
-		if(/^\-\-/.test(header))
-			return this.names.has(header.slice(2));
-		if(/^\-/.test(header))
-			return header.slice(1).split('').some(ch => this.shortNames.has(ch));
+	override Validate(index: string): boolean {
+		if(/^\-\-/.test(index))
+			return this.names.has(index.slice(2));
+		if(/^\-/.test(index))
+			return index.slice(1).split('').some(ch => this.shortNames.has(ch));
 		return false;
 	}
 }
@@ -122,32 +122,39 @@ export class Command extends Parsable {
 		this.#Add(Command, this.commands, commands);
 	}
 
-	override Validate(header: string): boolean {
-		return this.names.has(header);
+	override Validate(index: string): boolean {
+		return this.names.has(index);
 	}
 
-	Find(header: string): Parsable | null {
+	Find(index: string): Parsable | null {
 		return [this.commands, this.options]
 			.map(set => Array.from(set as Set<Parsable>) as Parsable[])
 			.flat()
-			.find(child => child.Validate(header))
+			.find(child => child.Validate(index))
 			|| null;
 	}
-	GetOption(header: string): string[] {
-		const parsable = this.Find(header);
+	GetOption(index: string): string[] {
+		const parsable = this.Find(index);
 		if(parsable instanceof Option)
 			return parsable.arguments.slice();
 		return [];
 	}
-	GetFlag(header: string): boolean {
-		const parsable = this.Find(header);
+	GetFlag(index: string): boolean {
+		const parsable = this.Find(index);
 		if(parsable instanceof Flag)
 			return parsable.parsed;
 		return false;
 	}
-	GetSingle(header: string): string {
-		const option = this.GetOption(header)[0];
-		return option === undefined ? '' : option;
+	GetSingle(index: string | number): string {
+		if(typeof index === 'number')
+			return (str => typeof str === 'string' ? str : '')(this.arguments[index]);
+		const option = this.GetOption(index)[0];
+		if(typeof option === 'string')
+			return option;
+		const flag = this.GetFlag(index);
+		if(flag)
+			return 'true';
+		return '';
 	}
 
 	override Parse(args: string[]): void {
@@ -167,7 +174,7 @@ export class Command extends Parsable {
 
 	async Execute(context?: ExecContext) {
 		if(!this.parsed)
-			throw 'Cannot exec an unparsed command';
+			throw 'Cannot execute an unparsed command';
 		if(this.parsedCommand)
 			await this.parsedCommand.Execute(context);
 		else if(this.handler)

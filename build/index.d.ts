@@ -5,7 +5,7 @@ declare abstract class Parsable {
     parsed: boolean;
     names: Set<string>;
     constructor(init: Init);
-    abstract Validate(header: string): boolean;
+    abstract Validate(index: string): boolean;
     abstract Parse(args: string[]): void;
 }
 interface OptionInit extends FlagInit {
@@ -17,7 +17,7 @@ export declare class Option extends Parsable {
     arguments: string[];
     constructor(init: OptionInit);
     Parse(args: string[]): void;
-    Validate(header: string): boolean;
+    Validate(index: string): boolean;
 }
 interface FlagInit extends Init {
     shortName?: string | string[];
@@ -48,11 +48,11 @@ export declare class Command extends Parsable {
     AddOptions(options: Iterable<OptionInit | Option>): void;
     AddFlags(flags: Iterable<FlagInit | Flag>): void;
     AddCommands(commands: Iterable<CommandInit | Command>): void;
-    Validate(header: string): boolean;
-    Find(header: string): Parsable | null;
-    GetOption(header: string): string[];
-    GetFlag(header: string): boolean;
-    GetSingle(header: string): string;
+    Validate(index: string): boolean;
+    Find(index: string): Parsable | null;
+    GetOption(index: string): string[];
+    GetFlag(index: string): boolean;
+    GetSingle(index: string | number): string;
     Parse(args: string[]): void;
     Execute(context?: ExecContext): Promise<void>;
 }

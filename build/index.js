@@ -34,11 +34,11 @@ export class Option extends Parsable {
         this.parsed = true;
         this.arguments.push(...args.splice(0, this.argumentCount));
     }
-    Validate(header) {
-        if (/^\-\-/.test(header))
-            return this.names.has(header.slice(2));
-        if (/^\-/.test(header))
-            return header.slice(1).split('').some(ch => this.shortNames.has(ch));
+    Validate(index) {
+        if (/^\-\-/.test(index))
+            return this.names.has(index.slice(2));
+        if (/^\-/.test(index))
+            return index.slice(1).split('').some(ch => this.shortNames.has(ch));
         return false;
     }
 }
@@ -81,31 +81,38 @@ export class Command extends Parsable {
     AddCommands(commands) {
         this.#Add(Command, this.commands, commands);
     }
-    Validate(header) {
-        return this.names.has(header);
+    Validate(index) {
+        return this.names.has(index);
     }
-    Find(header) {
+    Find(index) {
         return [this.commands, this.options]
             .map(set => Array.from(set))
             .flat()
-            .find(child => child.Validate(header))
+            .find(child => child.Validate(index))
             || null;
     }
-    GetOption(header) {
-        const parsable = this.Find(header);
+    GetOption(index) {
+        const parsable = this.Find(index);
         if (parsable instanceof Option)
             return parsable.arguments.slice();
         return [];
     }
-    GetFlag(header) {
-        const parsable = this.Find(header);
+    GetFlag(index) {
+        const parsable = this.Find(index);
         if (parsable instanceof Flag)
             return parsable.parsed;
         return false;
     }
-    GetSingle(header) {
-        const option = this.GetOption(header)[0];
-        return option === undefined ? '' : option;
+    GetSingle(index) {
+        if (typeof index === 'number')
+            return (str => typeof str === 'string' ? str : '')(this.arguments[index]);
+        const option = this.GetOption(index)[0];
+        if (typeof option === 'string')
+            return option;
+        const flag = this.GetFlag(index);
+        if (flag)
+            return 'true';
+        return '';
     }
     Parse(args) {
         while (args.length) {
@@ -123,7 +130,7 @@ export class Command extends Parsable {
     }
     async Execute(context) {
         if (!this.parsed)
-            throw 'Cannot exec an unparsed command';
+            throw 'Cannot execute an unparsed command';
         if (this.parsedCommand)
             await this.parsedCommand.Execute(context);
         else if (this.handler)
