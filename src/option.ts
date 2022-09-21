@@ -1,4 +1,4 @@
-import { Init, Parsable, ParseContext, ExecutionContext } from './base.js';
+import { Init, Parsable, ParseContext } from './base.js';
 
 export interface OptionInit extends FlagInit {
 	argumentCount: number;

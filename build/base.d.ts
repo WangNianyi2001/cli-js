@@ -9,7 +9,7 @@ export interface ExecutionContext {
     scriptPath?: string;
 }
 export interface Init {
-    name: string | Iterable<string>;
+    name?: string | Iterable<string>;
     description?: string;
 }
 export declare abstract class Parsable {

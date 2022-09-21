@@ -18,12 +18,15 @@ export class Command extends Parsable {
 
 	constructor(init: CommandInit) {
 		super(init);
+		this.Add(init);
+	}
+
+	Add(init: CommandInit) {
 		this.handler = init.handler || null;
 		this.AddOptions(init.options || []);
 		this.AddFlags(init.flags || []);
 		this.AddCommands(init.commands || []);
 	}
-
 	#Add<I extends Init, P extends Parsable>(
 		Class: { new(init: I): P; }, set: Set<P>, sources: Iterable<I | P>
 	) {
@@ -110,19 +113,18 @@ import * as path from 'path';
 import { URL } from 'url';
 
 export default class CLI extends Command {
-	override async Execute(context: ExecutionContext) {
-		try {
-			this.Parse(process.argv.slice(2), { parsedAs: process.argv[1] });
-			this.parsed = true;
-			await super.Execute(context || {
-				cli: this,
-				cwd: process.cwd(),
-				execDir: process.argv[0],
-				scriptPath: path.resolve(process.argv[1], path.basename(new URL(import.meta.url).pathname))
-			});
-		} catch(e: any) {
-			console.error(e);
-		}
+	override async Execute(context?: ExecutionContext) {
+		this.Parse(process.argv.slice(2), { parsedAs: process.argv[1] });
+		this.parsed = true;
+		await super.Execute(context || {
+			cli: this,
+			cwd: process.cwd(),
+			execDir: process.argv[0],
+			scriptPath: path.resolve(
+				process.argv[1],
+				path.basename(new URL(import.meta.url).pathname)
+			)
+		});
 	}
 }
 

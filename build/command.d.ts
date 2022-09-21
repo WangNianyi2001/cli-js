@@ -15,6 +15,7 @@ export declare class Command extends Parsable {
     parsedCommand: Command | null;
     arguments: string[];
     constructor(init: CommandInit);
+    Add(init: CommandInit): void;
     AddOptions(options: Iterable<OptionInit | Option>): void;
     AddFlags(flags: Iterable<FlagInit | Flag>): void;
     AddCommands(commands: Iterable<CommandInit | Command>): void;
@@ -27,6 +28,6 @@ export declare class Command extends Parsable {
     Execute(context: ExecutionContext): Promise<void>;
 }
 export default class CLI extends Command {
-    Execute(context: ExecutionContext): Promise<void>;
+    Execute(context?: ExecutionContext): Promise<void>;
 }
 export { CLI };

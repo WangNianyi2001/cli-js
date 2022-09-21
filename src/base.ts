@@ -12,7 +12,7 @@ export interface ExecutionContext {
 }
 
 export interface Init {
-	name: string | Iterable<string>;
+	name?: string | Iterable<string>;
 	description?: string;
 }
 
