@@ -1,5 +1,5 @@
 {
-	"name": "cli-ts",
+	"name": "@nianyi-wang/cli-ts",
 	"version": "0.0.1",
 	"author": "Nianyi Wang<wangnianyi2001@outlook.com>",
 	"type": "module",
